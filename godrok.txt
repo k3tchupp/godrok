@@ -1,0 +1,113 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+namespace Godrok
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            string filename = "melyseg.txt";
+            List<int> godrok = Read(filename);
+
+            Console.WriteLine($"1. feladat\nA fájl adatainak száma: {godrok.Count}");
+
+            Console.Write("\n2. feladat\nAdjon meg egy távolságértéket! ");
+            int lengthIndex = Convert.ToInt32(Console.ReadLine());
+            Console.WriteLine($"Ezen a helyen a felszín {godrok[lengthIndex - 1]} méter mélyen van.");
+
+            double unhandled = godrok.Count(x => x == 0);
+            Console.WriteLine($"\n3. feladat\nAz érintetlen terület aránya: {Math.Round(unhandled / godrok.Count * 100, 2)}%.");
+
+            List<string> godroktxt = ExtractGodrok(godrok);
+            File.WriteAllLines("godrok.txt", godroktxt);
+
+            Console.WriteLine($"\n5. feladat\nA gödrök száma: {godroktxt.Count}");
+
+            ProcessGodor(godrok, lengthIndex);
+        }
+
+        static List<int> Read(string filename)
+        {
+            return File.ReadAllLines(filename).Select(int.Parse).ToList();
+        }
+
+        static List<string> ExtractGodrok(List<int> godrok)
+        {
+            List<string> godroktxt = new List<string>();
+            string currentGodor = "";
+            foreach (var depth in godrok)
+            {
+                if (depth != 0)
+                {
+                    currentGodor += depth + " ";
+                }
+                else if (currentGodor != "")
+                {
+                    godroktxt.Add(currentGodor.Trim());
+                    currentGodor = "";
+                }
+            }
+            if (currentGodor != "") godroktxt.Add(currentGodor.Trim());
+            return godroktxt;
+        }
+
+        static void ProcessGodor(List<int> godrok, int index)
+        {
+            if (godrok[index - 1] == 0)
+            {
+                Console.WriteLine("\n6. feladat\nAz adott helyen nincs gödör.");
+                return;
+            }
+
+            int start = FindStart(godrok, index);
+            int end = FindEnd(godrok, index);
+            Console.WriteLine($"a)\nA gödör kezdete: {start + 1} méter, a gödör vége: {end + 1} méter.");
+
+            bool isMonotonous = CheckMonotonous(godrok, start, end);
+            Console.WriteLine($"b)\n{(isMonotonous ? "Folyamatosan mélyül." : "Nem mélyül folyamatosan.")}");
+
+            int maxDepth = godrok.GetRange(start, end - start + 1).Max();
+            Console.WriteLine($"c)\nA legnagyobb mélysége {maxDepth} méter.");
+
+            int volume = CalculateVolume(godrok, start, end);
+            Console.WriteLine($"d)\nA térfogata {volume} m^3.");
+
+            int waterVolume = CalculateWaterVolume(godrok, start, end);
+            Console.WriteLine($"e)\nA vízmennyiség {waterVolume} m^3.");
+        }
+
+        static int FindStart(List<int> godrok, int index)
+        {
+            while (index > 0 && godrok[index - 1] != 0) index--;
+            return index;
+        }
+
+        static int FindEnd(List<int> godrok, int index)
+        {
+            while (index < godrok.Count && godrok[index - 1] != 0) index++;
+            return index - 1;
+        }
+
+        static bool CheckMonotonous(List<int> godrok, int start, int end)
+        {
+            for (int i = start; i < end; i++)
+            {
+                if (godrok[i] > godrok[i + 1]) return false;
+            }
+            return true;
+        }
+
+        static int CalculateVolume(List<int> godrok, int start, int end)
+        {
+            return godrok.GetRange(start, end - start + 1).Sum() * 10;
+        }
+
+        static int CalculateWaterVolume(List<int> godrok, int start, int end)
+        {
+            return godrok.GetRange(start, end - start + 1).Where(d => d > 1).Sum(d => (d - 1) * 10);
+        }
+    }
+}
